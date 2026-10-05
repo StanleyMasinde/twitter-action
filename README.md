@@ -2,7 +2,7 @@
 
 GitHub Action for installing the [`StanleyMasinde/twitter`](https://github.com/StanleyMasinde/twitter) CLI and publishing a tweet in a workflow.
 
-The action installs the requested CLI version on every run, writes a temporary `twitter_cli` config from the supplied credentials, and executes `twitter tweet --body ...`.
+The action installs [Twitter CLI v1.8.0](https://github.com/StanleyMasinde/twitter/releases/tag/v1.8.0) on every run using a [vendored installer](scripts/install-twitter-v1.8.0.sh), writes a temporary `twitter_cli` config from the supplied OAuth 1.0a credentials, and executes `twitter tweet --body ...`. The CLI version is pinned because v1.10.0 uses an interactive OAuth 2.0 authorization flow that a fresh GitHub Actions runner cannot complete.
 
 ## Usage
 
@@ -23,7 +23,6 @@ jobs:
         uses: StanleyMasinde/twitter-action@v1
         with:
           body: "A new release just shipped"
-          twitter_version: latest
           consumer_key: ${{ secrets.TWITTER_CONSUMER_KEY }}
           consumer_secret: ${{ secrets.TWITTER_CONSUMER_SECRET }}
           access_token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
@@ -38,7 +37,6 @@ jobs:
   uses: StanleyMasinde/twitter-action@v1
   with:
     body: "Released ${{ github.event.release.tag_name }}: ${{ github.event.release.html_url }}"
-    twitter_version: latest
     consumer_key: ${{ secrets.TWITTER_CONSUMER_KEY }}
     consumer_secret: ${{ secrets.TWITTER_CONSUMER_SECRET }}
     access_token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
@@ -51,7 +49,6 @@ jobs:
 | Name | Required | Default | Description |
 | --- | --- | --- | --- |
 | `body` | Yes | None | Tweet body to publish. |
-| `twitter_version` | No | `latest` | CLI version tag to install, for example `v1.5.0`. |
 | `consumer_key` | Yes | None | Twitter API consumer key. |
 | `consumer_secret` | Yes | None | Twitter API consumer secret. |
 | `access_token` | Yes | None | Twitter API access token. |
@@ -60,7 +57,7 @@ jobs:
 
 ## Behavior
 
-- The action downloads the installer script from the upstream `twitter` repository on each run.
+- The action runs the vendored v1.8.0 installer script. The installer downloads the pinned CLI release asset from GitHub.
 - The CLI is installed into a runner-local directory under `RUNNER_TEMP`, not into a system path.
 - Credentials are written to a temporary config file for the duration of the job.
 - This action currently supports text tweets only. The underlying CLI supports images, but this action does not expose an `image` input yet.

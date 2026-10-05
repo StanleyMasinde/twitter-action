@@ -4,8 +4,8 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-export const INSTALLER_URL =
-  'https://raw.githubusercontent.com/StanleyMasinde/twitter/main/install.sh';
+export const TWITTER_VERSION = 'v1.8.0';
+export const INSTALLER_PATH = new URL('../scripts/install-twitter-v1.8.0.sh', import.meta.url);
 
 export interface TwitterCredentials {
   consumerKey: string;
@@ -17,7 +17,6 @@ export interface TwitterCredentials {
 
 export interface ActionInputs {
   body: string;
-  twitterVersion: string;
   credentials: TwitterCredentials;
 }
 
@@ -56,7 +55,7 @@ export interface ActionServices {
   info(message: string): void;
   warning(message: string): void;
   exec(command: string, args: string[], options?: CommandOptions): Promise<CommandResult>;
-  fetchText(url: string): Promise<string>;
+  readInstaller(): Promise<string>;
   mkdir(dirPath: string): Promise<void>;
   writeFile(filePath: string, content: string): Promise<void>;
   copyFile(fromPath: string, toPath: string): Promise<void>;
@@ -73,7 +72,6 @@ export function parseInputs(
 
   return {
     body,
-    twitterVersion: getInput('twitter_version') || 'latest',
     credentials: {
       consumerKey: getInput('consumer_key', { required: true }),
       consumerSecret: getInput('consumer_secret', { required: true }),
@@ -259,13 +257,8 @@ export function createServices(): ActionServices {
         exitCode: result.exitCode,
       };
     },
-    async fetchText(url: string): Promise<string> {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
-      }
-
-      return response.text();
+    async readInstaller(): Promise<string> {
+      return fs.readFile(INSTALLER_PATH, 'utf8');
     },
     async mkdir(dirPath: string): Promise<void> {
       await fs.mkdir(dirPath, { recursive: true });
@@ -288,16 +281,14 @@ export function createServices(): ActionServices {
 }
 
 export async function installTwitter(
-  services: Pick<ActionServices, 'mkdir' | 'fetchText' | 'exec' | 'info' | 'warning' | 'copyFile' | 'fileExists' | 'platform'>,
-  version: string,
+  services: Pick<ActionServices, 'mkdir' | 'readInstaller' | 'exec' | 'info' | 'warning' | 'copyFile' | 'fileExists' | 'platform'>,
   installDir: string,
   environment: NodeJS.ProcessEnv,
 ): Promise<void> {
   await services.mkdir(installDir);
-  const installerScript = await services.fetchText(INSTALLER_URL);
-  const installerArgs = version === 'latest' ? ['-s'] : ['-s', version];
+  const installerScript = await services.readInstaller();
 
-  await runCommand(services, 'bash', installerArgs, {
+  await runCommand(services, 'bash', ['-s', TWITTER_VERSION], {
     env: {
       ...environment,
       TWITTER_INSTALL: installDir,
@@ -335,7 +326,7 @@ export async function runAction(services: ActionServices = createServices()): Pr
   const paths = buildActionPaths(services.tempRoot, services.platform, services.env);
   await services.mkdir(paths.workspaceDir);
 
-  await installTwitter(services, inputs.twitterVersion, paths.installDir, services.env);
+  await installTwitter(services, paths.installDir, services.env);
   services.addPath(paths.installDir);
 
   const twitterEnvironment = buildTwitterEnvironment(services.env, paths.homeDir);

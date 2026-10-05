@@ -28894,7 +28894,8 @@ function info(message) {
     process.stdout.write(message + os.EOL);
 }
 
-const INSTALLER_URL = 'https://raw.githubusercontent.com/StanleyMasinde/twitter/main/install.sh';
+const TWITTER_VERSION = 'v1.8.0';
+const INSTALLER_PATH = new URL('../scripts/install-twitter-v1.8.0.sh', import.meta.url);
 function parseInputs(getInput) {
     const body = getInput('body', { required: true, trimWhitespace: false });
     if (body.trim().length === 0) {
@@ -28902,7 +28903,6 @@ function parseInputs(getInput) {
     }
     return {
         body,
-        twitterVersion: getInput('twitter_version') || 'latest',
         credentials: {
             consumerKey: getInput('consumer_key', { required: true }),
             consumerSecret: getInput('consumer_secret', { required: true }),
@@ -29038,12 +29038,8 @@ function createServices() {
                 exitCode: result.exitCode,
             };
         },
-        async fetchText(url) {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
-            }
-            return response.text();
+        async readInstaller() {
+            return promises$1.readFile(INSTALLER_PATH, 'utf8');
         },
         async mkdir(dirPath) {
             await promises$1.mkdir(dirPath, { recursive: true });
@@ -29065,11 +29061,10 @@ function createServices() {
         },
     };
 }
-async function installTwitter(services, version, installDir, environment) {
+async function installTwitter(services, installDir, environment) {
     await services.mkdir(installDir);
-    const installerScript = await services.fetchText(INSTALLER_URL);
-    const installerArgs = version === 'latest' ? ['-s'] : ['-s', version];
-    await runCommand(services, 'bash', installerArgs, {
+    const installerScript = await services.readInstaller();
+    await runCommand(services, 'bash', ['-s', TWITTER_VERSION], {
         env: {
             ...environment,
             TWITTER_INSTALL: installDir,
@@ -29096,7 +29091,7 @@ async function runAction(services = createServices()) {
     registerSecrets(services.setSecret, inputs.credentials);
     const paths = buildActionPaths(services.tempRoot, services.platform, services.env);
     await services.mkdir(paths.workspaceDir);
-    await installTwitter(services, inputs.twitterVersion, paths.installDir, services.env);
+    await installTwitter(services, paths.installDir, services.env);
     services.addPath(paths.installDir);
     const twitterEnvironment = buildTwitterEnvironment(services.env, paths.homeDir);
     await writeTwitterConfig(services, paths.configPaths, inputs.credentials);

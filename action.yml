@@ -10,10 +10,6 @@ inputs:
   body:
     description: Tweet body to publish
     required: true
-  twitter_version:
-    description: Twitter CLI version tag to install, for example v1.5.0
-    required: false
-    default: latest
   consumer_key:
     description: Twitter API consumer key
     required: true

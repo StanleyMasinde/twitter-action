@@ -4,7 +4,9 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildActionPaths,
   buildTwitterEnvironment,
-  INSTALLER_URL,
+  INSTALLER_PATH,
+  TWITTER_VERSION,
+  createServices,
   parseInputs,
   registerSecrets,
   renderTwitterConfig,
@@ -32,7 +34,6 @@ function createMockServices(
 
   const inputs = {
     body: 'Ship it',
-    twitter_version: 'latest',
     consumer_key: 'consumer-key',
     consumer_secret: 'consumer-secret',
     access_token: 'access-token',
@@ -66,7 +67,7 @@ function createMockServices(
       execCalls.push({ command, args, options });
       return { stdout: '', stderr: '', exitCode: 0 };
     }),
-    fetchText: vi.fn(async () => '#!/usr/bin/env sh\n'),
+    readInstaller: vi.fn(async () => '#!/usr/bin/env sh\n'),
     mkdir: vi.fn(async () => undefined),
     writeFile: vi.fn(async (filePath: string, content: string) => {
       writes.push({ filePath, content });
@@ -104,7 +105,6 @@ describe('parseInputs', () => {
 
     const inputs = parseInputs(getInput);
 
-    expect(inputs.twitterVersion).toBe('latest');
     expect(inputs.body).toBe('hello world');
     expect(inputs.credentials.consumerKey).toBe('consumer-key');
   });
@@ -199,6 +199,13 @@ describe('buildActionPaths', () => {
 });
 
 describe('runAction', () => {
+  it('reads the vendored installer from the action package', async () => {
+    const script = await createServices().readInstaller();
+
+    expect(INSTALLER_PATH.pathname).toContain('/scripts/install-twitter-v1.8.0.sh');
+    expect(script).toContain('REPO="StanleyMasinde/twitter"');
+  });
+
   it('installs the CLI, masks secrets, writes config, and sends the tweet', async () => {
     const services = createMockServices();
     services.exec = vi.fn(async (command: string, args: string[], options?: CommandOptions) => {
@@ -213,7 +220,7 @@ describe('runAction', () => {
     await runAction(services);
 
     const paths = buildActionPaths('/tmp/runner', 'linux');
-    expect(services.fetchText).toHaveBeenCalledWith(INSTALLER_URL);
+    expect(services.readInstaller).toHaveBeenCalledOnce();
     expect(services.registeredSecrets).toEqual([
       'consumer-key',
       'consumer-secret',
@@ -224,7 +231,7 @@ describe('runAction', () => {
     expect(services.addPathCalls).toEqual([paths.installDir]);
     expect(services.execCalls[0]).toMatchObject({
       command: 'bash',
-      args: ['-s'],
+      args: ['-s', TWITTER_VERSION],
     });
     expect(services.execCalls[1]).toMatchObject({
       command: paths.binaryPath,

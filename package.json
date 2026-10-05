@@ -1,27 +1,10 @@
 {
-  "name": "twitter-action",
-  "version": "1.0.0",
-  "description": "GitHub Action that installs the Twitter CLI and publishes a tweet.",
-  "keywords": [
-    "CI",
-    "Twitter",
-    "CLI",
-    "Releases",
-    "Actions"
-  ],
-  "license": "MIT",
   "author": "Stanley Masinde",
-  "type": "module",
-  "main": "dist/index.js",
-  "packageManager": "pnpm@10.28.2",
-  "scripts": {
-    "build": "tsc --noEmit -p tsconfig.json && rollup --config rollup.config.mjs",
-    "test": "vitest run",
-    "test:watch": "vitest"
+  "dependencies": {
+    "@actions/core": "^3.0.0",
+    "@actions/exec": "^3.0.0"
   },
-  "engines": {
-    "node": ">=20"
-  },
+  "description": "GitHub Action that installs the Twitter CLI and publishes a tweet.",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^29.0.2",
     "@rollup/plugin-node-resolve": "^16.0.3",
@@ -32,8 +15,25 @@
     "typescript": "^5.8.2",
     "vitest": "^3.0.8"
   },
-  "dependencies": {
-    "@actions/core": "^3.0.0",
-    "@actions/exec": "^3.0.0"
-  }
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "CI",
+    "Twitter",
+    "CLI",
+    "Releases",
+    "Actions"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "name": "twitter-action",
+  "packageManager": "pnpm@10.28.2",
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json && rollup --config rollup.config.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "type": "module",
+  "version": "1.0.1"
 }
